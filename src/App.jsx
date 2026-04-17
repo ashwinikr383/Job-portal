@@ -22,7 +22,20 @@ import Logout from './pages/Logout'; // <--- NEW IMPORT FIXED THE BLANK SCREEN
 // Import Dashboards
 import SeekerDashboard from './pages/SeekerDashboard';
 import EmployerDashboard from './pages/EmployerDashboard';
+import JobApplicants from './pages/JobApplicants';
 import AdminDashboard from './pages/AdminDashboard';
+import BannedUsers from './pages/BannedUsers';
+import UpdateResume from './pages/UpdateResume';
+import axios from 'axios';
+
+// Setup axios interceptor to include token in all requests
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
 
 // Helper to reset scroll when changing pages
 const ScrollToTop = () => {
@@ -59,11 +72,14 @@ function App() {
             <Route path="/employer-login" element={<EmployerLogin />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/logout" element={<Logout />} />
-
+            <Route path="/update-resume" element={<UpdateResume />} />
+            
             {/* Dashboard Routes */}
             <Route path="/seeker-dashboard" element={<SeekerDashboard />} />
             <Route path="/employer-dashboard" element={<EmployerDashboard />} />
+            <Route path="/employer/job/:id/applicants" element={<JobApplicants />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/banned-users" element={<BannedUsers />} />
           </Routes>
         </main>
 

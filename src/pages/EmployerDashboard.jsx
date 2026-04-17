@@ -1,118 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const EmployerDashboard = () => {
   const [activeJobs, setActiveJobs] = useState([]);
-  const [newJob, setNewJob] = useState({ title: '', location: '', salary: '', type: 'Full-Time', description: '' });
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // 1. Load existing jobs from MongoDB on mount
   useEffect(() => {
-    const fetchEmployerJobs = async () => {
+    const fetchJobs = async () => {
       try {
         const user = JSON.parse(localStorage.getItem('user'));
-        if (!user) return;
+        const token = localStorage.getItem('token');
+        if (!user || !token || user.role !== 'Employer') {
+          alert('Access denied: Employer access required. Please login with an employer account.');
+          navigate('/employer-login');
+          return;
+        }
 
-        const res = await axios.get('http://localhost:5000/api/jobs/all');
-        
-        // Filter jobs so this employer only sees the ones they posted
-        // We use == instead of === just in case one ID is a string and the other is an Object
-        const myJobs = res.data.filter(job => job.postedBy === user._id || job.postedBy?._id === user._id);
-        setActiveJobs(myJobs);
+        const res = await axios.get(`http://localhost:5000/api/jobs/employer/${user._id}/applications`);
+        setActiveJobs(res.data);
       } catch (err) {
-        console.error("Failed to fetch jobs from the grid.", err);
+        console.error('Failed to load employer jobs:', err);
+        alert('Unable to fetch your jobs right now.');
       } finally {
         setLoading(false);
       }
     };
-    fetchEmployerJobs();
-  }, []);
+    fetchJobs();
+  }, [navigate]);
 
-  // 2. Real Database Deployment Logic
-  const handlePostJob = async (e) => {
-    e.preventDefault();
-    
-    const user = JSON.parse(localStorage.getItem('user'));
-
-    if (!user || !user._id) {
-      alert("Session Expired: Please login again.");
-      return;
-    }
-
-    const jobPayload = {
-      title: newJob.title,
-      company: user.name, 
-      location: newJob.location,
-      salary: newJob.salary,
-      description: newJob.description,
-      postedBy: user._id 
-    };
-
-    try {
-      const res = await axios.post('http://localhost:5000/api/jobs/create', jobPayload);
-      
-      setActiveJobs([res.data, ...activeJobs]);
-      setNewJob({ title: '', location: '', salary: '', type: 'Full-Time', description: '' });
-      alert("CONTRACT DEPLOYED TO THE GRID");
-    } catch (err) {
-      console.error("Deployment failure details:", err.response?.data);
-      alert(`Action failed: ${err.response?.data?.error || "Check backend console"}`);
+  const handleApplicantCount = (job) => {
+    if (job.applications > 0) {
+      alert(`${job.applications} applicant(s) have applied to "${job.title}".`);
+    } else {
+      alert(`No applications have arrived for "${job.title}" yet.`);
     }
   };
 
-  // Styles
-  const cardStyle = { background: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)' };
-  const inputStyle = { padding: '12px', borderRadius: '8px', fontSize: '1rem', border: '1px solid #d1d5db', backgroundColor: '#f9fafb', color: '#111827' };
-
-  if (loading) return <div className="p-10 font-bold text-center">ACCESSING COMMAND CENTER...</div>;
+  if (loading) return <div className="p-20 text-center font-bold">SYNCING EMPLOYER NETWORK...</div>;
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto', width: '100%', color: '#111827' }}>
-      <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: '900' }}>
-          Employer <span style={{ color: '#00d2ff' }}>Command Center</span>
-        </h2>
-        <p style={{ color: '#4b5563', fontSize: '1.1rem', fontWeight: '600' }}>
-          Welcome back. Manage your operations below.
-        </p>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-        <div style={{ ...cardStyle, padding: '20px', textAlign: 'center', borderTop: '4px solid #ff007f' }}>
-          <h3 style={{ fontSize: '2.5rem', fontWeight: '900' }}>{activeJobs.length}</h3>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase' }}>Active Listings</p>
+    <div className="max-w-6xl mx-auto px-6 py-12 text-white">
+      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-5xl font-black uppercase tracking-tighter">Employer <span className="text-brand-blue">Dashboard</span></h2>
+          <p className="text-slate-400 mt-3">Manage your postings in one place and review applicant activity instantly.</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/post-job')}
+            className="bg-brand-gradient text-white px-6 py-3 rounded-3xl font-black uppercase tracking-[0.2em] shadow-lg hover:scale-[1.02] transition"
+          >
+            Post New Job
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
-        {/* Left Column: Form */}
-        <div style={{ ...cardStyle, flex: '1 1 400px', padding: '30px' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '15px' }}>
-            Initialize New Contract
-          </h3>
-          <form onSubmit={handlePostJob} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input type="text" placeholder="Job Title" required value={newJob.title} style={inputStyle} onChange={(e) => setNewJob({...newJob, title: e.target.value})} />
-            <input type="text" placeholder="Location" required value={newJob.location} style={inputStyle} onChange={(e) => setNewJob({...newJob, location: e.target.value})} />
-            <input type="text" placeholder="Salary" required value={newJob.salary} style={inputStyle} onChange={(e) => setNewJob({...newJob, salary: e.target.value})} />
-            <textarea placeholder="Job Description..." rows="4" required value={newJob.description} style={{ ...inputStyle, resize: 'vertical' }} onChange={(e) => setNewJob({...newJob, description: e.target.value})}></textarea>
-            <button type="submit" style={{ padding: '14px', borderRadius: '8px', backgroundColor: '#00d2ff', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer' }}>
-              Deploy Contract
-            </button>
-          </form>
-        </div>
-
-        {/* Right Column: List */}
-        <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: '800' }}>Active Operations</h3>
-          {activeJobs.map(job => (
-            <div key={job._id} style={{ ...cardStyle, padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="grid gap-6">
+        {activeJobs.length === 0 ? (
+          <div className="glass-card p-10 border border-white/10 bg-slate-950/70">
+            <h3 className="text-2xl font-black mb-4">No active contracts yet</h3>
+            <p className="text-slate-400">You can publish a new role by using the Post New Job button. Once seekers apply, application counts will appear here.</p>
+          </div>
+        ) : activeJobs.map((job) => (
+          <div key={job._id} className="glass-card p-8 border border-white/10 bg-slate-950/70 shadow-2xl">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h4 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#00d2ff', margin: 0 }}>{job.title}</h4>
-                <p style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '5px' }}>{job.location} | {job.salary}</p>
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  <span className="inline-flex items-center rounded-full bg-brand-blue/10 px-3 py-1 text-brand-blue text-xs font-bold uppercase tracking-[0.25em]">{job.company}</span>
+                  <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-slate-200 text-xs font-semibold">{job.location}</span>
+                </div>
+                <h3 className="text-3xl font-black text-white mb-2">{job.title}</h3>
+                <p className="text-slate-400 text-sm uppercase tracking-[0.2em] font-bold">{job.salary}</p>
+              </div>
+
+              <div className="flex flex-col gap-4 sm:items-end">
+                <span className="inline-flex items-center rounded-full bg-brand-pink/10 text-brand-pink px-4 py-2 text-sm font-bold tracking-[0.2em] uppercase">
+                  {job.applications || 0} Applied
+                </span>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/employer/job/${job._id}/applicants`)}
+                    className="bg-brand-blue text-slate-950 px-5 py-3 rounded-3xl font-black uppercase tracking-[0.15em] hover:scale-[1.02] transition"
+                  >
+                    View Applicants
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/job/${job._id}`)}
+                    className="bg-white/10 text-white px-5 py-3 rounded-3xl font-black uppercase tracking-[0.15em] border border-white/10 hover:bg-white/20 transition"
+                  >
+                    Review Listing
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

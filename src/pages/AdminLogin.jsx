@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -7,18 +8,25 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
 
-    // MOCK ADMIN AUTH
-    const adminEmail = "admin@1.com";
-    const adminPassword = "boss";
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const { token, user } = response.data;
 
-    if (email === adminEmail && password === adminPassword) {
-      setError('');
+      if (!token || !user) {
+        throw new Error('Authentication failed.');
+      }
+
+      // Store auth data so protected actions work correctly
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       navigate('/admin/dashboard');
-    } else {
-      setError('Unauthorized access. Invalid admin credentials.');
+    } catch (err) {
+      console.error('Admin login failed:', err);
+      setError(err.response?.data?.message || 'Unauthorized access. Invalid admin credentials.');
     }
   };
 

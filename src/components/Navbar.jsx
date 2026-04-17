@@ -6,7 +6,8 @@ export default function Navbar() {
   
   // 1. Get the user data from localStorage
   const user = JSON.parse(localStorage.getItem('user')); 
-  const isLoggedIn = !!localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  const isLoggedIn = !!token && !!user;
 
   const handleLogout = () => {
     localStorage.clear();
@@ -26,17 +27,10 @@ export default function Navbar() {
           
           {/* 2. Show "Browse Jobs" ONLY if Seeker is logged in */}
           {isLoggedIn && user?.role === 'Seeker' && (
-            <Link to="/jobs" className="hover:text-brand-pink transition">Browse Jobs</Link>
-          )}
-
-          {/* 3. Show "Post a Job" ONLY if Employer is logged in */}
-          {isLoggedIn && user?.role === 'Employer' && (
-            <Link 
-              to="/post-job" 
-              className="bg-brand-gradient text-white px-6 py-2.5 rounded-xl shadow-lg hover:scale-105 transition-all"
-            >
-              Post a Job
-            </Link>
+            <>
+              <Link to="/jobs" className="hover:text-brand-pink transition">Browse Jobs</Link>
+              <Link to="/update-resume" className="hover:text-brand-pink transition">My Resume</Link>
+            </>
           )}
 
           {/* 4. Show "Sign In" only if NOT logged in */}

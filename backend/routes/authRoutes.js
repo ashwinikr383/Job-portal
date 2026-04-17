@@ -1,8 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'vicejobs_secret_key_2026';
 
 // --- POST: REGISTER A NEW USER ---
 router.post('/register', async (req, res) => {
@@ -17,12 +19,17 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const isVerified = role === 'Admin' ? true : false;
+    const status = role === 'Admin' ? 'Verified' : 'Pending';
+
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
       role,
-      companyName: role === 'Employer' ? companyName : undefined 
+      companyName: role === 'Employer' ? companyName : undefined,
+      isVerified,
+      status
     });
 
     await newUser.save();
@@ -44,18 +51,33 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: '[ ERROR ] Operative not found in mainframe.' });
     }
 
+    if (user.status === 'Banned') {
+      return res.status(403).json({ message: '[ ERROR ] Access blocked: account is banned.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: '[ ERROR ] Invalid credentials.' });
     }
 
+    const token = jwt.sign(
+      { userId: user._id, role: user.role, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.status(200).json({
       message: '[ SUCCESS ] Access granted to the mainframe!',
+      token,
       user: {
+        _id: user._id,
         id: user._id,
         name: user.name,
         role: user.role,
-        email: user.email
+        email: user.email,
+        resume: user.resume || '',
+        isVerified: user.isVerified,
+        status: user.status
       }
     });
 

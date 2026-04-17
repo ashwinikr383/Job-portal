@@ -9,6 +9,14 @@ const jobSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  location: {
+    type: String,
+    default: 'Remote'
+  },
+  type: {
+    type: String,
+    default: 'Full-Time'
+  },
   salary: { 
     type: String, 
     required: true 
@@ -17,7 +25,18 @@ const jobSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  // This is the crucial part: It links the job to the specific Employer who posted it
+  requirements: {
+    type: [String],
+    default: []
+  },
+  responsibilities: {
+    type: [String],
+    default: []
+  },
+  posted: {
+    type: String,
+    default: 'Today'
+  },
   postedBy: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 

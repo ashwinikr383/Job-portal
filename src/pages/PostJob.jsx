@@ -7,6 +7,7 @@ const PostJob = () => {
   const [formData, setFormData] = useState({
     title: '',
     company: '',
+    location: '',
     salary: '',
     description: ''
   });
@@ -19,16 +20,18 @@ const PostJob = () => {
     try {
       // 1. Retrieve the user object saved during login
       const storedUser = JSON.parse(localStorage.getItem('user'));
+      const token = localStorage.getItem('token');
       
-      if (!storedUser || !storedUser._id) {
-        alert("ACCESS DENIED: No authorized session found. Please log in.");
-        return navigate('/login');
+      if (!storedUser || !token || storedUser.role !== 'Employer') {
+        alert("ACCESS DENIED: Only employers can post jobs. Please log in with an employer account.");
+        return navigate('/employer-login');
       }
 
       // 2. Prepare the payload with the 'postedBy' field required by your model
+      const employerId = storedUser._id || storedUser.id;
       const payload = {
         ...formData,
-        postedBy: storedUser._id // Linking the job to the logged-in Employer
+        postedBy: employerId // Linking the job to the logged-in Employer
       };
 
       // 3. POST to your backend
@@ -84,6 +87,19 @@ const PostJob = () => {
                 required
               />
             </div>
+            <div>
+              <label className="block text-brand-pink font-black uppercase text-xs tracking-widest mb-2">Location</label>
+              <input 
+                type="text" 
+                placeholder="Remote / New York"
+                className={inputClasses}
+                value={formData.location}
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                required
+              />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-brand-pink font-black uppercase text-xs tracking-widest mb-2">Salary Range</label>
               <input 

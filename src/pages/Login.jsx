@@ -12,6 +12,11 @@ const Login = () => {
       const response = await axios.post('http://localhost:5000/api/auth/login', formData);
       
       if (response.data.user) {
+        if (response.data.user.role !== 'Seeker') {
+          alert('Access denied: This login page is for job seekers only. Please use the employer login if you are an employer.');
+          return;
+        }
+
         // 1. Save User and Token to LocalStorage
         localStorage.setItem('user', JSON.stringify(response.data.user));
         if (response.data.token) {
